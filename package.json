@@ -1,0 +1,76 @@
+{
+  "name": "fish-time-pro",
+  "displayName": "Fish Time Pro",
+  "description": "根据上下班时间、休息日与中国节假日ICS，实时在状态栏显示今日已摸工资，并在悬浮时显示距离下班时间。",
+  "version": "1.0.0",
+  "publisher": "Josh",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/superior-josh/fish-time-pro.git"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./fishTimePro.js",
+  "icon": "images/icon.png",
+  "contributes": {
+    "configuration": {
+      "title": "Fish Time Pro 配置",
+      "properties": {
+        "fish-time-pro.0_monthly-salary": {
+          "type": "number",
+          "default": 20450,
+          "minimum": 0,
+          "description": "月薪（数字，单位：元）"
+        },
+        "fish-time-pro.1_morning-start": {
+          "type": "string",
+          "default": "10:00",
+          "description": "上午开始时间（格式：HH:mm）",
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+          "patternErrorMessage": "时间格式必须为HH:mm，例如09:00"
+        },
+        "fish-time-pro.2_morning-end": {
+          "type": "string",
+          "default": "11:30",
+          "description": "上午结束时间（格式：HH:mm）",
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+          "patternErrorMessage": "时间格式必须为HH:mm，例如12:00"
+        },
+        "fish-time-pro.3_afternoon-start": {
+          "type": "string",
+          "default": "13:30",
+          "description": "下午开始时间（格式：HH:mm）",
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+          "patternErrorMessage": "时间格式必须为HH:mm，例如13:00"
+        },
+        "fish-time-pro.4_afternoon-end": {
+          "type": "string",
+          "default": "18:00",
+          "description": "下午结束时间（格式：HH:mm）",
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+          "patternErrorMessage": "时间格式必须为HH:mm，例如18:00"
+        },
+        "fish-time-pro.5_rest-days": {
+          "type": "array",
+          "description": "休息日（1-7分别表示周一至周日；周日为7）",
+          "items": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 7
+          },
+          "default": [
+            6,
+            7
+          ]
+        }
+      }
+    }
+  }
+}

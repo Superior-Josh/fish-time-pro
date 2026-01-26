@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  FishTime 扩展图标（SVG 128x128）
+  设计说明：
+  - 采用“鱼 + 时钟 + 人民币符号”的组合，突出“摸鱼 / 时间 / 工资”的主题。
+  - 颜色选择尽量简洁，适配浅色/深色背景；可后续按需微调。
+  - 发布到 VSCode Marketplace 通常要求 128x128 PNG。你可以用任意工具将该 SVG 导出为 PNG 并将 package.json 的 icon 改为 images/icon.png。
+  - 若你希望我帮你转换为 PNG，请明确授权执行命令或提供你偏好的转换工具（如 Inkscape / ImageMagick）。
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- 背景圆，轻微阴影感 -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+  </defs>
+  <circle cx="64" cy="64" r="60" fill="url(#bgGrad)"/>
+
+  <!-- 时钟盘 -->
+  <circle cx="64" cy="64" r="34" fill="#ffffff" opacity="0.9"/>
+  <circle cx="64" cy="64" r="34" fill="none" stroke="#0f172a" stroke-width="3" opacity="0.85"/>
+  <!-- 时钟刻度（12、3、6、9） -->
+  <line x1="64" y1="32" x2="64" y2="38" stroke="#0f172a" stroke-width="3" opacity="0.85"/>
+  <line x1="96" y1="64" x2="90" y2="64" stroke="#0f172a" stroke-width="3" opacity="0.85"/>
+  <line x1="64" y1="96" x2="64" y2="90" stroke="#0f172a" stroke-width="3" opacity="0.85"/>
+  <line x1="32" y1="64" x2="38" y2="64" stroke="#0f172a" stroke-width="3" opacity="0.85"/>
+  <!-- 时针 / 分针（指向 10:10，通用美观角度） -->
+  <line x1="64" y1="64" x2="52" y2="50" stroke="#0f172a" stroke-width="4" stroke-linecap="round"/>
+  <line x1="64" y1="64" x2="84" y2="54" stroke="#0f172a" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="64" cy="64" r="3" fill="#0f172a"/>
+
+  <!-- 鱼的轮廓（右侧游动的鱼） -->
+  <!-- 鱼身 -->
+  <ellipse cx="88" cy="64" rx="18" ry="10" fill="#e2e8f0" opacity="0.9" stroke="#0f172a" stroke-width="2"/>
+  <!-- 鱼尾 -->
+  <polygon points="104,64 116,72 116,56" fill="#e2e8f0" stroke="#0f172a" stroke-width="2"/>
+  <!-- 鱼眼 -->
+  <circle cx="94" cy="60" r="2.5" fill="#0f172a"/>
+
+  <!-- 人民币符号（¥），左下角强调“工资”主题 -->
+  <text x="20" y="108" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="700" fill="#0f172a" opacity="0.9">¥</text>
+
+  <!-- 轻微高光效果，让图标更灵动 -->
+  <ellipse cx="64" cy="44" rx="50" ry="22" fill="#ffffff" opacity="0.10"/>
+</svg>

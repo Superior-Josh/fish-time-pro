@@ -1,0 +1,5 @@
+# Git ignore file for FishTimePro project
+# @author Josh
+# @date 2026-01-26
+
+.DS_Store
