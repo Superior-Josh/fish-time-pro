@@ -36,7 +36,7 @@ let lastContext = null;
 let isFocused = true;
 // 定时器间隔（毫秒）：前台/后台两套频率
 const TIMER_MS = {
-    amountFocused: 100,
+    amountFocused: 1000,
     amountBlurred: 1000,
     tooltipFocused: 1000,
     tooltipBlurred: 5000
@@ -525,7 +525,7 @@ async function updateStatusBar() {
     if (!isTodayWorkingDay || totalWorkingDays <= 0 || monthlySalary <= 0 || totalWorkMs <= 0) {
         // 非工作日或配置不可用：显示为 0，并给提示
         earned = 0;
-        if (!isTodayWorkingDay) statusLabel = '今日为休息日或法定节假日';
+        if (!isTodayWorkingDay) statusLabel = '今天放假';
         else if (totalWorkingDays <= 0) statusLabel = '本月总工作日为 0（请检查节假日数据与休息日配置）';
         else if (monthlySalary <= 0) statusLabel = '请在设置中配置月薪';
         else statusLabel = '时间配置异常，请检查上下班时间';
@@ -597,7 +597,7 @@ async function updateStatusBar() {
         : 0;
     const monthlyToDateText = new Intl.NumberFormat('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(monthlyToDate);
     // 显示“已工作天数/本月工作天数”，其中 workedDays 包含“今天”若今天为工作日
-    tooltipLines.push(`本月工作天数：${workedDays}/${totalWorkingDays}`);
+    tooltipLines.push(`本月工作天数：${workedDays} / ${totalWorkingDays}`);
     tooltipLines.push(`本月累计工资：￥ ${monthlyToDateText}`);
 
     const newTooltip = tooltipLines.join('\n');
