@@ -1,7 +1,7 @@
 // 注意：此扩展不依赖外部库，仅使用 VSCode API 与 Node 内置 https。
 // 作用：
-// 1) 在状态栏显示“今日工资”
-// 2) 悬浮提示显示“距离下班时间”
+// 1) 在状态栏显示"今日工资"
+// 2) 悬浮提示显示"距离下班时间"
 // 3) 读取用户在设置中配置的上下班时间（四段）、月薪与休息日
 // 4) 拉取并解析中国节假日 ICS，计算当月总工作日与已上班天数，判断今日是否工作日
 // 5) 每秒更新一次显示，逻辑与现有 HTML 页面保持一致（午休、下班后全额、节假日/休息日为 0 等）
@@ -11,9 +11,9 @@ const https = require('https');
 
 /**
  * 远程 ICS 源地址（与 HTML 一致）。
- * 包含合法的 DTSTART;VALUE=DATE 与 SUMMARY 描述，用于识别“假期第N天”和“补班/调休”。
+ * 包含合法的 DTSTART;VALUE=DATE 与 SUMMARY 描述，用于识别"假期第N天"和"补班/调休"。
  */
-const ICS_URL = 'https://www.shuyz.com/githubfiles/china-holiday-calender/master/holidayCal.ics';
+const ICS_URL = 'https://www.shuy.com/githubfiles/china-holiday-calender/master/holidayCal.ics';
 
 /**
  * ICS 缓存有效期（毫秒）。避免频繁网络请求，设置为 24 小时。
@@ -89,7 +89,7 @@ function activate(context) {
 
     // 创建状态栏项：改为靠左显示，但不最左，保持在其他左侧信息之后
     // VS Code 规则：对于左侧（StatusBarAlignment.Left），优先级数值越大越靠左；越小越靠右。
-    // 为了“靠左但不最左”，这里设置一个较小的优先级（例如 -100），让它排在左侧的其他信息后面。
+    // 为了"靠左但不最左"，这里设置一个较小的优先级（例如 -100），让它排在左侧的其他信息后面。
     statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, -100);
     statusBarItem.text = 'FishTime 准备中...';
     statusBarItem.tooltip = '正在初始化...';
@@ -102,7 +102,7 @@ function activate(context) {
 
     // 启动两个定时器：
     // 1) 悬浮窗（tooltip）每秒刷新一次：计算月度工作日、节假日与当前工作状态；
-    // 2) 金额文本每100ms刷新一次：仅根据最近上下文计算今日工资，呈现“连续变化”的视觉效果。
+    // 2) 金额文本每100ms刷新一次：仅根据最近上下文计算今日工资，呈现"连续变化"的视觉效果。
     const updateTooltip = async () => {
         try {
             await updateStatusBar();
@@ -277,8 +277,8 @@ async function fetchHolidayICS(context) {
 /**
  * 解析 ICS：提取本月的假期（holidays）与补班/调休工作日（workdays）。
  * 规则与 HTML 保持一致：
- * - DTSTART;VALUE=DATE:YYYYMMDD 记为假期天（如果 SUMMARY 中含“假期第N天”会用于显示，但此处我们只需天数用于工作日计算）
- * - DTSTART:YYYYMMDD... 且 SUMMARY 包含“补班/调休/班/compensateday”视为工作日（覆盖休息日）
+ * - DTSTART;VALUE=DATE:YYYYMMDD 记为假期天（如果 SUMMARY 中含"假期第N天"会用于显示，但此处我们只需天数用于工作日计算）
+ * - DTSTART:YYYYMMDD... 且 SUMMARY 包含"补班/调休/班/compensateday"视为工作日（覆盖休息日）
  */
 function parseICSForMonth(icsText, year, month) {
     const lines = (icsText || '').split('\n');
@@ -334,10 +334,11 @@ function parseICSForMonth(icsText, year, month) {
 }
 
 /**
- * 计算当月“总工作日”、“已上班天数”与“今日是否为工作日”。
- * 规则与 HTML 一致：
- * - 如果用户配置为休息日（周几），默认不工作；但若该日为补班/调休（workdays），则视为工作日。
- * - 如果不是休息日：若该天是法定假期（holidays），则不工作；否则工作。
+ * 计算当月"总工作日"、"已上班天数"与"今日是否为工作日"。
+ * 新规则：
+ * - 总工作日 = 所有周一至周五的天数 - 法定节假日 + 补班/调休日
+ * - 今日是否工作日 = 是否为周一至周五且不在法定节假日中
+ * - 节假日视为带薪假期，计入本月工作天数和累计工资
  */
 function calcWorkingDays(year, month, restDaysConfig, holidays, workdays) {
     const daysInMonth = new Date(year, month, 0).getDate(); // 注意这里 month 为 1-12（与 new Date 保持一致传递）
@@ -347,6 +348,7 @@ function calcWorkingDays(year, month, restDaysConfig, holidays, workdays) {
     let totalWorkingDays = 0;
     let workedDays = 0;
     let isTodayWorkingDay = false;
+    let isTodayHoliday = false;
 
     // restDaysConfig：例如 [6,7] 表示周六与周日休息；Date.getDay(): 0=周日 -> 映射为7，其它 1-6 不变
     const restSet = new Set((restDaysConfig || []).map(n => parseInt(n, 10)).filter(n => n >= 1 && n <= 7));
@@ -356,27 +358,43 @@ function calcWorkingDays(year, month, restDaysConfig, holidays, workdays) {
         const dow = date.getDay(); // 0-6，0是周日
         const dowHuman = (dow === 0) ? 7 : dow; // 1-7，人类友好
 
+        // 检查这一天是否为法定节假日
+        const isHoliday = holidays.includes(day);
+        
+        // 检查这一天是否为补班/调休日
+        const isWorkday = workdays.includes(day);
+        
+        // 判断是否为工作日：周一到周五且不在法定节假日中，或者是在补班/调休日
         let isWorkingDay = false;
-        if (restSet.has(dowHuman)) {
-            // 用户配置的休息日：如果是补班/调休（workdays），则转为工作日
-            if (workdays.includes(day)) {
-                isWorkingDay = true;
-            }
+        if (isWorkday) {
+            // 如果是补班/调休日，则为工作日
+            isWorkingDay = true;
+        } else if (isHoliday) {
+            // 如果是法定节假日，则不是工作日
+            isWorkingDay = false;
+        } else if (restSet.has(dowHuman)) {
+            // 如果是用户配置的休息日（如周末），则不是工作日
+            isWorkingDay = false;
         } else {
-            // 非休息日：若不是法定假期则工作
-            if (!holidays.includes(day)) {
-                isWorkingDay = true;
-            }
+            // 否则是工作日（周一到周五，非法定节假日）
+            isWorkingDay = true;
         }
 
         if (isWorkingDay) {
             totalWorkingDays++;
             if (day <= currentDay) workedDays++;
             if (day === currentDay) isTodayWorkingDay = true;
+        } else if (isHoliday && day <= currentDay) {
+            // 如果是法定节假日且在今天或之前，则计入已上班天数（带薪假期）
+            workedDays++;
+            if (day === currentDay) {
+                isTodayHoliday = true;
+                isTodayWorkingDay = true; // 节假日也视为工作日（带薪假期）
+            }
         }
     }
 
-    return { totalWorkingDays, workedDays, isTodayWorkingDay };
+    return { totalWorkingDays, workedDays, isTodayWorkingDay, isTodayHoliday };
 }
 
 /**
@@ -455,7 +473,7 @@ function calcNextRestDay(year, month, restDaysConfig, holidays, workdays, icsTex
 /**
  * 计算并更新状态栏文本与悬浮提示。
  * 文本：￥xxx.xx
- * 悬浮：距离下班：HH:mm:ss（并根据情况显示“已下班/未到上班时间/今日非工作日”等）
+ * 悬浮：距离下班：HH:mm:ss（并根据情况显示"已下班/未到上班时间/今日非工作日"等）
  */
 async function updateStatusBar() {
     if (!statusBarItem) return;
@@ -510,22 +528,27 @@ async function updateStatusBar() {
     const { holidays, workdays } = parseICSForMonth(icsText, year, month);
 
     // 计算本月工作日相关数据
-    const { totalWorkingDays, workedDays, isTodayWorkingDay } = calcWorkingDays(year, month, cfg.restDays, holidays, workdays);
+    const { totalWorkingDays, workedDays, isTodayWorkingDay, isTodayHoliday } = calcWorkingDays(year, month, cfg.restDays, holidays, workdays);
 
 
-    // 计算“今日工资”与“距离下班时间”
+    // 计算"今日工资"与"距离下班时间"
     const monthlySalary = Number(cfg.monthlySalary) || 0;
     const nowMin = now.getHours() * 60 + now.getMinutes();
     const totalWorkMs = (morningEndDate - morningStartDate) + (afternoonEndDate - afternoonStartDate);
 
     let earned = 0;
     let statusLabel = '';
-    let dailySalary = 0; // 用于“本月工资”累计计算（两位小数）
+    let dailySalary = 0; // 用于"本月工资"累计计算（两位小数）
 
     if (!isTodayWorkingDay || totalWorkingDays <= 0 || monthlySalary <= 0 || totalWorkMs <= 0) {
         // 非工作日或配置不可用：显示为 0，并给提示
         earned = 0;
-        if (!isTodayWorkingDay) statusLabel = '今天放假';
+        if (isTodayHoliday) {
+            statusLabel = '今天放假';
+            // 节假日时，获得当日日薪
+            dailySalary = monthlySalary / totalWorkingDays;
+            earned = dailySalary;
+        } else if (!isTodayWorkingDay) statusLabel = '今天休息';
         else if (totalWorkingDays <= 0) statusLabel = '本月总工作日为 0（请检查节假日数据与休息日配置）';
         else if (monthlySalary <= 0) statusLabel = '请在设置中配置月薪';
         else statusLabel = '时间配置异常，请检查上下班时间';
@@ -574,21 +597,30 @@ async function updateStatusBar() {
         afternoonEndDate,
         totalWorkingDays,
         isTodayWorkingDay,
+        isTodayHoliday,
         monthlySalary,
     };
 
     // 悬浮窗显示信息：
     // 1) 点击提示（新增）
-    // 2) 状态（未到上班/上午工作中/午休/下午工作中/已下班/休息日）
-    // 3) 距离上午结束的倒计时（HH:mm:ss）
-    // 4) 距离下午结束的倒计时（HH:mm:ss）
+    // 2) 状态（未到上班/上午工作中/午休/下午工作中/已下班/休息日/节假日）
+    // 3) 距离上午结束的倒计时（HH:mm:ss）- 节假日不显示
+    // 4) 距离下午结束的倒计时（HH:mm:ss）- 节假日不显示
     // 5) 月度统计
     // 每秒刷新一次，提供实时信息；仍使用"文本变更才更新"的策略，减少不必要重绘。
     const tooltipLines = [];
     tooltipLines.push('单击打开 FishTimePro 设置');
+    
     if (statusLabel) tooltipLines.push(statusLabel);
-    tooltipLines.push(`距离上午结束：${formatDiffToHMS(morningEndDate - now)}`);
-    tooltipLines.push(`距离下午结束：${formatDiffToHMS(afternoonEndDate - now)}`);
+    
+    // 节假日时不显示距离上下班的倒计时
+    if (!isTodayHoliday) {
+        tooltipLines.push(`距离上午结束：${formatDiffToHMS(morningEndDate - now)}`);
+        tooltipLines.push(`距离下午结束：${formatDiffToHMS(afternoonEndDate - now)}`);
+    } else {
+        tooltipLines.push('今天是法定节假日，享受带薪假期！');
+    }
+    
     // 追加两段：
     // 4) 本月实际工作天数（计算自休息日、法定节假日与补班/调休）
     // 5) 本月工资（前N-1天为整日工资 + 今天的实时进度工资，保留两位小数）
@@ -596,7 +628,7 @@ async function updateStatusBar() {
         ? (isTodayWorkingDay ? ((workedDays - 1) * dailySalary + earned) : (workedDays * dailySalary))
         : 0;
     const monthlyToDateText = new Intl.NumberFormat('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(monthlyToDate);
-    // 显示“已工作天数/本月工作天数”，其中 workedDays 包含“今天”若今天为工作日
+    // 显示"已工作天数/本月工作天数"，其中 workedDays 包含"今天"若今天为工作日
     tooltipLines.push(`本月工作天数：${workedDays} / ${totalWorkingDays}`);
     tooltipLines.push(`本月累计工资：￥ ${monthlyToDateText}`);
 
@@ -609,7 +641,7 @@ async function updateStatusBar() {
 
 /**
  * 仅更新状态栏金额文本（每100ms），使用最近一次的上下文。
- * 避免高频解析 ICS 与月度工作日，提高性能并呈现“连续变化”。
+ * 避免高频解析 ICS 与月度工作日，提高性能并呈现"连续变化"。
  */
 function updateAmountText() {
     if (!statusBarItem || !lastContext) return;
@@ -621,13 +653,20 @@ function updateAmountText() {
         afternoonEndDate,
         totalWorkingDays,
         isTodayWorkingDay,
+        isTodayHoliday,
         monthlySalary
     } = lastContext;
 
     const totalWorkMs = (morningEndDate - morningStartDate) + (afternoonEndDate - afternoonStartDate);
     let earned = 0;
     let ratio = 0; // 今日工作进度（0-1）
-    if (!isTodayWorkingDay || totalWorkingDays <= 0 || monthlySalary <= 0 || totalWorkMs <= 0) {
+    
+    if (isTodayHoliday) {
+        // 节假日时，显示当日日薪和100%进度
+        const dailySalary = monthlySalary / totalWorkingDays;
+        earned = dailySalary;
+        ratio = 1;
+    } else if (!isTodayWorkingDay || totalWorkingDays <= 0 || monthlySalary <= 0 || totalWorkMs <= 0) {
         earned = 0;
         ratio = 0;
     } else {

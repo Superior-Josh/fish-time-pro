@@ -2,7 +2,7 @@
   "name": "fish-time-pro",
   "displayName": "Fish Time Pro",
   "description": "根据上下班时间、休息日与中国节假日ICS，实时在状态栏显示今日已摸工资，并在悬浮时显示距离下班时间。",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "Josh",
   "repository": {
     "type": "git",
